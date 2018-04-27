@@ -25,6 +25,20 @@ describe('SwitchRouter', () => {
     expect(state3.routes[0].routes.length).toEqual(1);
   });
 
+  test('sets the next state even if no previous state is provided', () => {
+    const router = getExampleRouter();
+    const initialState = router.getStateForAction({
+      type: NavigationActions.INIT,
+    });
+    const nextState = router.getStateForAction({
+      type: NavigationActions.NAVIGATE,
+      routeName: 'A2',
+    });
+
+    expect(nextState.routes[0].index).toEqual(1);
+    expect(nextState.routes[0].routes.length).toEqual(2);
+  });
+
   test('does not reset the route on unfocus if resetOnBlur is false', () => {
     const router = getExampleRouter({ resetOnBlur: false });
     const state = router.getStateForAction({ type: NavigationActions.INIT });
@@ -77,56 +91,6 @@ describe('SwitchRouter', () => {
 
     expect(state3.index).toEqual(0);
   });
-
-  test('paths option on SwitchRouter overrides path from route config', () => {
-    const router = getExampleRouter({ paths: { A: 'overridden' } });
-    const action = router.getActionForPathAndParams('overridden', {});
-    expect(action.type).toEqual(NavigationActions.NAVIGATE);
-    expect(action.routeName).toEqual('A');
-  });
-
-  test('provides correct action for getActionForPathAndParams', () => {
-    const router = getExampleRouter({ backBehavior: 'initialRoute' });
-    const action = router.getActionForPathAndParams('A1', { foo: 'bar' });
-    expect(action.type).toEqual(NavigationActions.NAVIGATE);
-    expect(action.routeName).toEqual('A1');
-
-    const action1 = router.getActionForPathAndParams('', {});
-    expect(action1.type).toEqual(NavigationActions.NAVIGATE);
-    expect(action1.routeName).toEqual('A');
-
-    const action2 = router.getActionForPathAndParams(null, {});
-    expect(action2.type).toEqual(NavigationActions.NAVIGATE);
-    expect(action2.routeName).toEqual('A');
-
-    const action3 = router.getActionForPathAndParams('great/path', {
-      foo: 'baz',
-    });
-    expect(action3).toEqual({
-      type: NavigationActions.NAVIGATE,
-      routeName: 'B',
-      params: { foo: 'baz' },
-      action: {
-        type: NavigationActions.NAVIGATE,
-        routeName: 'B1',
-        params: { foo: 'baz' },
-      },
-    });
-
-    const action4 = router.getActionForPathAndParams('great/path/B2', {
-      foo: 'baz',
-    });
-    expect(action4).toEqual({
-      type: NavigationActions.NAVIGATE,
-      routeName: 'B',
-      params: { foo: 'baz' },
-      action: {
-        type: NavigationActions.NAVIGATE,
-        routeName: 'B2',
-        params: { foo: 'baz' },
-      },
-    });
-  });
 });
 
 const getExampleRouter = (config = {}) => {
@@ -146,14 +110,8 @@ const getExampleRouter = (config = {}) => {
 
   const router = SwitchRouter(
     {
-      A: {
-        screen: StackA,
-        path: '',
-      },
-      B: {
-        screen: StackB,
-        path: 'great/path',
-      },
+      A: StackA,
+      B: StackB,
     },
     {
       initialRouteName: 'A',

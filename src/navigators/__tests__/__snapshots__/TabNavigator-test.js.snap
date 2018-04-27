@@ -143,7 +143,7 @@ exports[`TabNavigator renders successfully 1`] = `
                 },
                 false,
                 Object {
-                  "flex": 1,
+                  "flexGrow": 1,
                 },
               ]
             }
@@ -156,7 +156,6 @@ exports[`TabNavigator renders successfully 1`] = `
                   "alignSelf": "center",
                   "height": "100%",
                   "justifyContent": "center",
-                  "minWidth": 30,
                   "opacity": 1,
                   "position": "absolute",
                   "width": "100%",
@@ -171,7 +170,6 @@ exports[`TabNavigator renders successfully 1`] = `
                   "alignSelf": "center",
                   "height": "100%",
                   "justifyContent": "center",
-                  "minWidth": 30,
                   "opacity": 0,
                   "position": "absolute",
                   "width": "100%",
