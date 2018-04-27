@@ -3,9 +3,10 @@
 import React from 'react';
 
 import StackRouter from '../StackRouter';
-import StackActions from '../StackActions';
-import NavigationActions from '../../NavigationActions';
+import TabRouter from '../TabRouter';
 import { _TESTING_ONLY_normalize_keys } from '../KeyGenerator';
+
+import NavigationActions from '../../NavigationActions';
 
 beforeEach(() => {
   _TESTING_ONLY_normalize_keys();
@@ -365,38 +366,7 @@ describe('StackRouter', () => {
     expect(pushedState.routes[1].routes[1].routeName).toEqual('qux');
   });
 
-  test('push bubbles up', () => {
-    const ChildNavigator = () => <div />;
-    ChildNavigator.router = StackRouter({
-      Baz: { screen: () => <div /> },
-      Qux: { screen: () => <div /> },
-    });
-    const router = StackRouter({
-      Foo: { screen: () => <div /> },
-      Bar: { screen: ChildNavigator },
-      Bad: { screen: () => <div /> },
-    });
-    const state = router.getStateForAction({ type: NavigationActions.INIT });
-    const state2 = router.getStateForAction(
-      {
-        type: NavigationActions.NAVIGATE,
-        routeName: 'Bar',
-      },
-      state
-    );
-    const barKey = state2.routes[1].routes[0].key;
-    const state3 = router.getStateForAction(
-      {
-        type: StackActions.PUSH,
-        routeName: 'Bad',
-      },
-      state2
-    );
-    expect(state3 && state3.index).toEqual(2);
-    expect(state3 && state3.routes.length).toEqual(3);
-  });
-
-  test('pop bubbles up', () => {
+  test('pop does not bubble up', () => {
     const ChildNavigator = () => <div />;
     ChildNavigator.router = StackRouter({
       Baz: { screen: () => <div /> },
@@ -419,14 +389,46 @@ describe('StackRouter', () => {
     const barKey = state2.routes[1].routes[0].key;
     const state3 = router.getStateForAction(
       {
-        type: StackActions.POP,
+        type: NavigationActions.POP,
       },
       state2
     );
-    expect(state3 && state3.index).toEqual(0);
+    expect(state3 && state3.index).toEqual(1);
+    expect(state3 && state3.routes[1].index).toEqual(0);
   });
 
-  test('popToTop bubbles up', () => {
+  test('push does not bubble up', () => {
+    const ChildNavigator = () => <div />;
+    ChildNavigator.router = StackRouter({
+      Baz: { screen: () => <div /> },
+      Qux: { screen: () => <div /> },
+    });
+    const router = StackRouter({
+      Foo: { screen: () => <div /> },
+      Bar: { screen: ChildNavigator },
+      Bad: { screen: () => <div /> },
+    });
+    const state = router.getStateForAction({ type: NavigationActions.INIT });
+    const state2 = router.getStateForAction(
+      {
+        type: NavigationActions.NAVIGATE,
+        routeName: 'Bar',
+      },
+      state
+    );
+    const barKey = state2.routes[1].routes[0].key;
+    const state3 = router.getStateForAction(
+      {
+        type: NavigationActions.PUSH,
+        routeName: 'Bad',
+      },
+      state2
+    );
+    expect(state3 && state3.index).toEqual(1);
+    expect(state3 && state3.routes.length).toEqual(2);
+  });
+
+  test('popToTop does not bubble up', () => {
     const ChildNavigator = () => <div />;
     ChildNavigator.router = StackRouter({
       Baz: { screen: () => <div /> },
@@ -447,11 +449,12 @@ describe('StackRouter', () => {
     const barKey = state2.routes[1].routes[0].key;
     const state3 = router.getStateForAction(
       {
-        type: StackActions.POP_TO_TOP,
+        type: NavigationActions.POP_TO_TOP,
       },
       state2
     );
-    expect(state3 && state3.index).toEqual(0);
+    expect(state3 && state3.index).toEqual(1);
+    expect(state3 && state3.routes[1].index).toEqual(0);
   });
 
   test('popToTop targets StackRouter by key if specified', () => {
@@ -475,50 +478,12 @@ describe('StackRouter', () => {
     const barKey = state2.routes[1].routes[0].key;
     const state3 = router.getStateForAction(
       {
-        type: StackActions.POP_TO_TOP,
+        type: NavigationActions.POP_TO_TOP,
         key: state2.key,
       },
       state2
     );
     expect(state3 && state3.index).toEqual(0);
-  });
-
-  test('pop action works as expected', () => {
-    const TestRouter = StackRouter({
-      foo: { screen: () => <div /> },
-      bar: { screen: () => <div /> },
-    });
-
-    const state = {
-      index: 3,
-      isTransitioning: false,
-      routes: [
-        { key: 'A', routeName: 'foo' },
-        { key: 'B', routeName: 'bar', params: { bazId: '321' } },
-        { key: 'C', routeName: 'foo' },
-        { key: 'D', routeName: 'bar' },
-      ],
-    };
-    const poppedState = TestRouter.getStateForAction(StackActions.pop(), state);
-    expect(poppedState.routes.length).toBe(3);
-    expect(poppedState.index).toBe(2);
-    expect(poppedState.isTransitioning).toBe(true);
-
-    const poppedState2 = TestRouter.getStateForAction(
-      StackActions.pop({ n: 2, immediate: true }),
-      state
-    );
-    expect(poppedState2.routes.length).toBe(2);
-    expect(poppedState2.index).toBe(1);
-    expect(poppedState2.isTransitioning).toBe(false);
-
-    const poppedState3 = TestRouter.getStateForAction(
-      StackActions.pop({ n: 5 }),
-      state
-    );
-    expect(poppedState3.routes.length).toBe(1);
-    expect(poppedState3.index).toBe(0);
-    expect(poppedState3.isTransitioning).toBe(true);
   });
 
   test('popToTop works as expected', () => {
@@ -537,19 +502,19 @@ describe('StackRouter', () => {
       ],
     };
     const poppedState = TestRouter.getStateForAction(
-      StackActions.popToTop(),
+      NavigationActions.popToTop(),
       state
     );
     expect(poppedState.routes.length).toBe(1);
     expect(poppedState.index).toBe(0);
     expect(poppedState.isTransitioning).toBe(true);
     const poppedState2 = TestRouter.getStateForAction(
-      StackActions.popToTop(),
+      NavigationActions.popToTop(),
       poppedState
     );
     expect(poppedState).toEqual(poppedState2);
     const poppedImmediatelyState = TestRouter.getStateForAction(
-      StackActions.popToTop({ immediate: true }),
+      NavigationActions.popToTop({ immediate: true }),
       state
     );
     expect(poppedImmediatelyState.routes.length).toBe(1);
@@ -557,59 +522,7 @@ describe('StackRouter', () => {
     expect(poppedImmediatelyState.isTransitioning).toBe(false);
   });
 
-  test('Navigate does not push duplicate routeName', () => {
-    const TestRouter = StackRouter(
-      {
-        foo: { screen: () => <div /> },
-        bar: { screen: () => <div /> },
-      },
-      { initialRouteName: 'foo' }
-    );
-    const initState = TestRouter.getStateForAction(NavigationActions.init());
-    const barState = TestRouter.getStateForAction(
-      NavigationActions.navigate({ routeName: 'bar' }),
-      initState
-    );
-    expect(barState.index).toEqual(1);
-    expect(barState.routes[1].routeName).toEqual('bar');
-    const navigateOnBarState = TestRouter.getStateForAction(
-      NavigationActions.navigate({ routeName: 'bar' }),
-      barState
-    );
-    expect(navigateOnBarState).toEqual(null);
-  });
-
-  test('Navigate focuses given routeName if already active in stack', () => {
-    const TestRouter = StackRouter(
-      {
-        foo: { screen: () => <div /> },
-        bar: { screen: () => <div /> },
-        baz: { screen: () => <div /> },
-      },
-      { initialRouteName: 'foo' }
-    );
-    const initialState = TestRouter.getStateForAction(NavigationActions.init());
-    const fooBarState = TestRouter.getStateForAction(
-      NavigationActions.navigate({ routeName: 'bar' }),
-      initialState
-    );
-    const fooBarBazState = TestRouter.getStateForAction(
-      NavigationActions.navigate({ routeName: 'baz' }),
-      fooBarState
-    );
-    expect(fooBarBazState.index).toEqual(2);
-    expect(fooBarBazState.routes[2].routeName).toEqual('baz');
-
-    const fooState = TestRouter.getStateForAction(
-      NavigationActions.navigate({ routeName: 'foo' }),
-      fooBarBazState
-    );
-    expect(fooState.index).toEqual(0);
-    expect(fooState.routes.length).toEqual(1);
-    expect(fooState.routes[0].routeName).toEqual('foo');
-  });
-
-  test('Navigate pushes duplicate routeName if unique key is provided', () => {
+  test('Navigate Pushes duplicate routeName', () => {
     const TestRouter = StackRouter({
       foo: { screen: () => <div /> },
       bar: { screen: () => <div /> },
@@ -622,7 +535,7 @@ describe('StackRouter', () => {
     expect(pushedState.index).toEqual(1);
     expect(pushedState.routes[1].routeName).toEqual('bar');
     const pushedTwiceState = TestRouter.getStateForAction(
-      NavigationActions.navigate({ routeName: 'bar', key: 'new-unique-key!' }),
+      NavigationActions.navigate({ routeName: 'bar' }),
       pushedState
     );
     expect(pushedTwiceState.index).toEqual(2);
@@ -676,90 +589,28 @@ describe('StackRouter', () => {
       NavigationActions.navigate({ routeName: 'foo', key: 'foo' }),
       initState
     );
-    expect(pushedState).toEqual(null);
+    expect(pushedState.index).toEqual(0);
+    expect(pushedState.routes[0].routeName).toEqual('foo');
   });
 
-  test('Navigate with key and without it is idempotent', () => {
+  test('Navigate with key is idempotent', () => {
     const TestRouter = StackRouter({
       foo: { screen: () => <div /> },
       bar: { screen: () => <div /> },
     });
     const initState = TestRouter.getStateForAction(NavigationActions.init());
-    for (key of ['a', null]) {
-      const pushedState = TestRouter.getStateForAction(
-        NavigationActions.navigate({ routeName: 'bar', key: 'a' }),
-        initState
-      );
-      expect(pushedState.index).toEqual(1);
-      expect(pushedState.routes[1].routeName).toEqual('bar');
-      const pushedTwiceState = TestRouter.getStateForAction(
-        NavigationActions.navigate({ routeName: 'bar', key: 'a' }),
-        pushedState
-      );
-      expect(pushedTwiceState).toEqual(null);
-    }
-  });
-
-  // https://github.com/react-navigation/react-navigation/issues/4063
-  test('Navigate on inactive stackrouter is idempotent', () => {
-    const FirstChildNavigator = () => <div />;
-    FirstChildNavigator.router = StackRouter({
-      First1: () => <div />,
-      First2: () => <div />,
-    });
-
-    const SecondChildNavigator = () => <div />;
-    SecondChildNavigator.router = StackRouter({
-      Second1: () => <div />,
-      Second2: () => <div />,
-    });
-
-    const router = StackRouter({
-      Leaf: () => <div />,
-      First: FirstChildNavigator,
-      Second: SecondChildNavigator,
-    });
-
-    const state = router.getStateForAction({ type: NavigationActions.INIT });
-
-    const first = router.getStateForAction(
-      NavigationActions.navigate({ routeName: 'First2' }),
-      state
-    );
-
-    const second = router.getStateForAction(
-      NavigationActions.navigate({ routeName: 'Second2' }),
-      first
-    );
-
-    const firstAgain = router.getStateForAction(
-      NavigationActions.navigate({
-        routeName: 'First2',
-        params: { debug: true },
-      }),
-      second
-    );
-
-    expect(first.routes.length).toEqual(2);
-    expect(first.index).toEqual(1);
-    expect(second.routes.length).toEqual(3);
-    expect(second.index).toEqual(2);
-
-    expect(firstAgain.index).toEqual(1);
-    expect(firstAgain.routes.length).toEqual(2);
-  });
-
-  test('Navigate to current routeName returns null to indicate handled action', () => {
-    const TestRouter = StackRouter({
-      foo: { screen: () => <div /> },
-      bar: { screen: () => <div /> },
-    });
-    const initState = TestRouter.getStateForAction(NavigationActions.init());
-    const navigatedState = TestRouter.getStateForAction(
-      NavigationActions.navigate({ routeName: 'foo' }),
+    const pushedState = TestRouter.getStateForAction(
+      NavigationActions.navigate({ routeName: 'bar', key: 'a' }),
       initState
     );
-    expect(navigatedState).toBe(null);
+    expect(pushedState.index).toEqual(1);
+    expect(pushedState.routes[1].routeName).toEqual('bar');
+    const pushedTwiceState = TestRouter.getStateForAction(
+      NavigationActions.navigate({ routeName: 'bar', key: 'a' }),
+      pushedState
+    );
+    expect(pushedTwiceState.index).toEqual(1);
+    expect(pushedTwiceState.routes[1].routeName).toEqual('bar');
   });
 
   test('Push behaves like navigate, except for key', () => {
@@ -769,37 +620,17 @@ describe('StackRouter', () => {
     });
     const initState = TestRouter.getStateForAction(NavigationActions.init());
     const pushedState = TestRouter.getStateForAction(
-      StackActions.push({ routeName: 'bar' }),
+      NavigationActions.push({ routeName: 'bar' }),
       initState
     );
     expect(pushedState.index).toEqual(1);
     expect(pushedState.routes[1].routeName).toEqual('bar');
     expect(() => {
       TestRouter.getStateForAction(
-        { type: StackActions.PUSH, routeName: 'bar', key: 'a' },
+        { type: NavigationActions.PUSH, routeName: 'bar', key: 'a' },
         pushedState
       );
     }).toThrow();
-  });
-
-  test('Push adds new routes every time', () => {
-    const TestRouter = StackRouter({
-      foo: { screen: () => <div /> },
-      bar: { screen: () => <div /> },
-    });
-    const initState = TestRouter.getStateForAction(NavigationActions.init());
-    const pushedState = TestRouter.getStateForAction(
-      StackActions.push({ routeName: 'bar' }),
-      initState
-    );
-    expect(pushedState.index).toEqual(1);
-    expect(pushedState.routes[1].routeName).toEqual('bar');
-    const secondPushedState = TestRouter.getStateForAction(
-      StackActions.push({ routeName: 'bar' }),
-      pushedState
-    );
-    expect(secondPushedState.index).toEqual(2);
-    expect(secondPushedState.routes[2].routeName).toEqual('bar');
   });
 
   test('Navigate backwards with key removes leading routes', () => {
@@ -895,7 +726,7 @@ describe('StackRouter', () => {
       NavigationActions.navigate({ routeName: 'foo' })
     );
     const replacedState = TestRouter.getStateForAction(
-      StackActions.replace({
+      NavigationActions.replace({
         routeName: 'bar',
         params: { meaning: 42 },
         key: initState.routes[0].key,
@@ -908,7 +739,7 @@ describe('StackRouter', () => {
     expect(replacedState.routes[0].routeName).toEqual('bar');
     expect(replacedState.routes[0].params.meaning).toEqual(42);
     const replacedState2 = TestRouter.getStateForAction(
-      StackActions.replace({
+      NavigationActions.replace({
         routeName: 'bar',
         key: initState.routes[0].key,
         newKey: 'wow',
@@ -945,7 +776,7 @@ describe('StackRouter', () => {
     expect(state2 && state2.isTransitioning).toEqual(true);
     const state3 = router.getStateForAction(
       {
-        type: StackActions.COMPLETE_TRANSITION,
+        type: NavigationActions.COMPLETE_TRANSITION,
       },
       state2
     );
@@ -1169,8 +1000,13 @@ describe('StackRouter', () => {
 
   test('Handles the setParams action with nested routers', () => {
     const ChildNavigator = () => <div />;
-    ChildNavigator.router = StackRouter({
-      Baz: { screen: () => <div /> },
+    const GrandChildNavigator = () => <div />;
+    GrandChildNavigator.router = StackRouter({
+      Quux: { screen: () => <div /> },
+      Corge: { screen: () => <div /> },
+    });
+    ChildNavigator.router = TabRouter({
+      Baz: { screen: GrandChildNavigator },
       Qux: { screen: () => <div /> },
     });
     const router = StackRouter({
@@ -1187,10 +1023,10 @@ describe('StackRouter', () => {
       state
     );
     expect(state2 && state2.index).toEqual(0);
-    expect(state2 && state2.routes[0].routes).toEqual([
+    expect(state2 && state2.routes[0].routes[0].routes).toEqual([
       {
         key: 'id-0',
-        routeName: 'Baz',
+        routeName: 'Quux',
         params: { name: 'foobar' },
       },
     ]);
@@ -1208,7 +1044,7 @@ describe('StackRouter', () => {
     const state = router.getStateForAction({ type: NavigationActions.INIT });
     const state2 = router.getStateForAction(
       {
-        type: StackActions.RESET,
+        type: NavigationActions.RESET,
         actions: [
           {
             type: NavigationActions.NAVIGATE,
@@ -1243,7 +1079,7 @@ describe('StackRouter', () => {
     });
     const state1 = router.getStateForAction({ type: NavigationActions.INIT });
     const resetAction = {
-      type: StackActions.RESET,
+      type: NavigationActions.RESET,
       key: 'Bad Key',
       actions: [
         {
@@ -1276,7 +1112,7 @@ describe('StackRouter', () => {
   });
 
   test('Handles the reset action with nested Router', () => {
-    const ChildRouter = StackRouter({
+    const ChildRouter = TabRouter({
       baz: {
         screen: () => <div />,
       },
@@ -1296,8 +1132,7 @@ describe('StackRouter', () => {
     const state = router.getStateForAction({ type: NavigationActions.INIT });
     const state2 = router.getStateForAction(
       {
-        type: StackActions.RESET,
-        key: null,
+        type: NavigationActions.RESET,
         actions: [
           {
             type: NavigationActions.NAVIGATE,
@@ -1349,7 +1184,7 @@ describe('StackRouter', () => {
     );
     const state3 = router.getStateForAction(
       {
-        type: StackActions.RESET,
+        type: NavigationActions.RESET,
         key: 'Init',
         actions: [
           {
@@ -1364,7 +1199,7 @@ describe('StackRouter', () => {
     );
     const state4 = router.getStateForAction(
       {
-        type: StackActions.RESET,
+        type: NavigationActions.RESET,
         key: null,
         actions: [
           {
@@ -1527,6 +1362,42 @@ describe('StackRouter', () => {
         },
       ],
     });
+  });
+
+  test('Handles the navigate action with params and nested TabRouter', () => {
+    const ChildNavigator = () => <div />;
+    ChildNavigator.router = TabRouter({
+      Baz: { screen: () => <div /> },
+      Boo: { screen: () => <div /> },
+    });
+
+    const router = StackRouter({
+      Foo: { screen: () => <div /> },
+      Bar: { screen: ChildNavigator },
+    });
+    const state = router.getStateForAction({ type: NavigationActions.INIT });
+    const state2 = router.getStateForAction(
+      {
+        type: NavigationActions.NAVIGATE,
+        immediate: true,
+        routeName: 'Bar',
+        params: { foo: '42' },
+      },
+      state
+    );
+    expect(state2 && state2.routes[1].params).toEqual({ foo: '42' });
+    expect(state2 && state2.routes[1].routes).toEqual([
+      {
+        key: 'Baz',
+        routeName: 'Baz',
+        params: { foo: '42' },
+      },
+      {
+        key: 'Boo',
+        routeName: 'Boo',
+        params: { foo: '42' },
+      },
+    ]);
   });
 
   test('Handles empty URIs', () => {
@@ -1800,7 +1671,7 @@ test('Handles deep navigate completion action', () => {
   expect(!!key).toEqual(true);
   const state3 = router.getStateForAction(
     {
-      type: StackActions.COMPLETE_TRANSITION,
+      type: NavigationActions.COMPLETE_TRANSITION,
     },
     state2
   );
