@@ -244,6 +244,9 @@ class StackViewLayout extends React.Component {
             this.props.onGestureCanceled && this.props.onGestureCanceled();
           },
           onPanResponderGrant: () => {
+            const targetParams = this.props.transitionProps.scene.route.params;
+            targetParams.onPanStart ? targetParams.onPanStart() : null;
+
             position.stopAnimation((value: number) => {
               this._isResponding = true;
               this._gestureStartValue = value;
@@ -313,6 +316,9 @@ class StackViewLayout extends React.Component {
             // the navigation view is the responder (mid-gesture)
             false,
           onPanResponderRelease: (event, gesture) => {
+            const targetParams = this.props.transitionProps.scene.route.params;
+            targetParams.onPanEnd ? targetParams.onPanEnd() : null;
+
             if (!this._isResponding) {
               return;
             }
